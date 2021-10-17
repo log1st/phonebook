@@ -71,7 +71,9 @@ module.exports = configure((ctx) => ({
 
     // Options below are automatically set depending on the env, set them if you want to override
     // extractCSS: false,
-    env: require('dotenv').config().parsed,
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-assignment
+    env: require('dotenv-flow').config().parsed,
 
     // https://quasar.dev/quasar-cli/handling-webpack
     // "chain" is a webpack-chain object https://github.com/neutrinojs/webpack-chain

@@ -1,8 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-var-requires
-require('dotenv').config({
-  path: process.env.NODE_ENV !== 'production' ? './.env.local' : './.env',
-});
-
 function config() {
   return {
     client: 'mysql2',
