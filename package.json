@@ -9,7 +9,7 @@
     "lint": "eslint --ext .js,.ts,.vue ./",
     "test": "echo \"No test specified\" && exit 0",
     "build": "quasar build -m ssr",
-    "start": "node index.js",
+    "start": "node ./dist/ssr/index.js",
     "pm2-start": "pm2 delete phonebook && pm2 start \"yarn start\" --name phonebook"
   },
   "dependencies": {
