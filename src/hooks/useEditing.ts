@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Department } from 'src/models/Department';
 import { useQuasar } from 'quasar';
 import DepartmentDialog from 'components/DepartmentDialog.vue';
+import { useDepartments } from 'src/hooks/useDepartments';
 
 export const useEditing = () => {
   const store = useStore();
@@ -31,9 +32,31 @@ export const useEditing = () => {
     console.log(departmentId);
   };
 
+  const {
+    removeDepartment,
+  } = useDepartments();
+
+  const showDepartmentRemovalDialog = (department: Department) => {
+    q.dialog({
+      title: `Вы действительно хотите удалить департамент ${department.name}?`,
+      ok: {
+        label: 'Да, удалить',
+        color: 'negative',
+      },
+      cancel: {
+        flat: true,
+        label: 'Отмена',
+      },
+      persistent: true,
+    }).onOk(async () => {
+      await removeDepartment(department);
+    });
+  };
+
   return {
     isEditing,
     showDepartmentDialog,
     showDepartmentsSortDialog,
+    showDepartmentRemovalDialog,
   };
 };

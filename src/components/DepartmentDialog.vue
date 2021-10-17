@@ -12,8 +12,12 @@
         <q-input
           autofocus
           v-model="model.name"
+          :error="'name' in errorsMap"
+          :error-message="errorsMap.name?.join(`\n`)"
           label="Название"/>
         <q-select
+          :error="'parentId' in errorsMap"
+          :error-message="errorsMap.parentId?.join(`\n`)"
           v-model="model.parentId"
           :options="departments.filter(d => (d.id !== id))"
           option-value="id"
@@ -21,6 +25,7 @@
           label="Родитель"
           clearable
           map-options
+          emit-value
           :disable="!id"
           autocomplete/>
       </q-card-section>
@@ -34,7 +39,6 @@
           type="submit"
           :label="id ? 'Сохранить' : 'Создать'"
           color="primary"
-          @click="onOKClick"
           :loading="isLoading" />
       </q-card-actions>
     </q-card>
@@ -48,6 +52,7 @@ import {
 import { useDialogPluginComponent } from 'quasar';
 import { DepartmentModel, useDepartments } from 'src/hooks/useDepartments';
 import { Department } from 'src/models/Department';
+import { useErrors } from 'src/hooks/useErrors';
 
 export default defineComponent({
   name: 'DepartmentDialog',
@@ -77,6 +82,8 @@ export default defineComponent({
     const {
       fetchDepartment,
       fetchDepartments,
+      createDepartment,
+      updateDepartment,
     } = useDepartments();
 
     const departments = ref<Array<Department>>([]);
@@ -109,22 +116,36 @@ export default defineComponent({
       immediate: true,
     });
 
-    // eslint-disable-next-line @typescript-eslint/require-await
+    const {
+      errorsMap,
+      clearErrors,
+      setErrors,
+    } = useErrors<keyof DepartmentModel>();
+
     const submit = async () => {
-      // eslint-disable-next-line no-console
-      console.log(model.value);
+      clearErrors();
+
+      const { status, response } = await (props.id ? updateDepartment({
+        id: props.id,
+        model: model.value,
+      }) : createDepartment(model.value));
+
+      if (!status) {
+        setErrors(response);
+      } else {
+        onDialogOK();
+      }
     };
 
     return {
       dialogRef,
       onDialogHide,
 
-      onOKClick() {
-        onDialogOK();
-      },
+      onOKClick: submit,
 
       onCancelClick: onDialogCancel,
 
+      errorsMap,
       model,
       submit,
       departments,

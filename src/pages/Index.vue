@@ -28,8 +28,15 @@
           round
           class="q-ml-auto"
           icon="edit"
-          v-if="department"
+          v-if="department && isEditing"
           @click="showDepartmentDialog(department)"/>
+        <q-btn
+          color="red"
+          round
+          class="q-ml-md"
+          icon="remove"
+          v-if="department && isEditing"
+          @click="showDepartmentRemovalDialog(department)"/>
       </div>
       <q-scroll-area class="col-grow q-mt-md">
         <q-inner-loading
@@ -52,6 +59,7 @@
         </q-tree>
       </q-scroll-area>
       <q-btn
+        v-if="isEditing"
         fab
         color="green"
         icon="add"
@@ -62,7 +70,7 @@
         fab-mini
         color="orange"
         icon="sort"
-        v-if="departments.length > 1"
+        v-if="isEditing && departments.length > 1"
         class="absolute"
         :style="{left: '10px', bottom: '10px'}"
         @click="showDepartmentsSortDialog(department?.id || null)"/>
@@ -220,8 +228,7 @@
 
 <script lang="ts">
 import {
-  computed,
-  defineComponent, PropType, ref, toRefs, watch,
+  computed, defineComponent, onBeforeUnmount, PropType, ref, toRefs, watch,
 } from 'vue';
 import { useDepartments } from 'src/hooks/useDepartments';
 import { Department } from 'src/models/Department';
@@ -229,6 +236,7 @@ import { useRouter } from 'src/router';
 import { DepartmentPerson, Person } from 'src/models/Person';
 import { Contact, ContactType } from 'src/models/Contact';
 import { useEditing } from 'src/hooks/useEditing';
+import { SignalType, useSignal } from 'src/hooks/useSignal';
 
 export default defineComponent({
   name: 'PageIndex',
@@ -254,44 +262,73 @@ export default defineComponent({
       fetchDepartmentPerson,
     } = useDepartments();
 
-    watch(id, (newId) => {
-      requestAnimationFrame(async () => {
-        // departments.value = [];
-        isFetchingDepartments.value = true;
-        const { status, response } = await fetchDepartments({
-          parentId: newId || null,
-        });
-
-        isFetchingDepartments.value = false;
-
-        if (status) {
-          departments.value = response.departments;
-        }
+    const loadDepartments = async () => {
+      // departments.value = [];
+      isFetchingDepartments.value = true;
+      const { status, response } = await fetchDepartments({
+        parentId: id.value || null,
       });
+
+      isFetchingDepartments.value = false;
+
+      if (status) {
+        departments.value = response.departments;
+      }
+    };
+
+    watch(id, () => {
+      requestAnimationFrame(loadDepartments);
     }, {
       immediate: !process.env.SERVER,
     });
 
-    watch(id, (newId) => {
-      requestAnimationFrame(async () => {
-        if (!newId) {
-          department.value = null;
-          return;
-        }
-        isFetchingDepartment.value = true;
-        const { status, response } = await fetchDepartment({
-          id: newId,
-        });
-
-        isFetchingDepartment.value = false;
-
-        if (status) {
-          department.value = response;
-        }
+    const loadDepartment = async () => {
+      if (!id.value) {
+        department.value = null;
+        return;
+      }
+      isFetchingDepartment.value = true;
+      const { status, response } = await fetchDepartment({
+        id: id.value,
       });
+
+      isFetchingDepartment.value = false;
+
+      if (status) {
+        department.value = response;
+      }
+    };
+
+    watch(id, () => {
+      requestAnimationFrame(loadDepartment);
     }, {
       immediate: !process.env.SERVER,
     });
+
+    const {
+      subscribeToSignal,
+    } = useSignal();
+
+    onBeforeUnmount(
+      subscribeToSignal([
+        SignalType.departmentCreated,
+        SignalType.departmentUpdated,
+      ], () => {
+        requestAnimationFrame(loadDepartments);
+        requestAnimationFrame(loadDepartment);
+      }),
+    );
+
+    const router = useRouter();
+
+    onBeforeUnmount(
+      subscribeToSignal(
+        SignalType.departmentRemoved,
+        async ({ parentId }: Department) => {
+          await router.push({ params: { id: parentId || '' } });
+        },
+      ),
+    );
 
     watch(id, (newId) => {
       requestAnimationFrame(async () => {
@@ -341,8 +378,6 @@ export default defineComponent({
 
     const selected = ref(null);
 
-    const router = useRouter();
-
     watch(selected, async (id) => {
       if (!id) {
         return;
@@ -370,6 +405,7 @@ export default defineComponent({
       isEditing,
       showDepartmentDialog,
       showDepartmentsSortDialog,
+      showDepartmentRemovalDialog,
     } = useEditing();
 
     return {
@@ -386,6 +422,7 @@ export default defineComponent({
       isEditing,
       showDepartmentDialog,
       showDepartmentsSortDialog,
+      showDepartmentRemovalDialog,
     };
   },
 });

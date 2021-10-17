@@ -4,6 +4,7 @@ import { ApiResponse } from 'src/hooks/useHttp';
 import { SourcePureErrors } from 'src/hooks/useErrors';
 import { AuthData } from 'src/store/auth/state';
 import { UserRole } from 'src/models/User';
+import { arrayFrom } from 'src/utils/object';
 
 export interface SignInPayload {
   login: string;
@@ -37,7 +38,7 @@ export const useAuth = <
   const signOut = async () => store.dispatch('auth/signOut') as Promise<SignOutResponse>;
 
   const can = computed(() => (role: UserRole | Array<UserRole>) => (
-    (role instanceof Array ? role : [role]).includes(userData.value?.role)
+    (arrayFrom(role)).includes(userData.value?.role)
   ));
 
   return {

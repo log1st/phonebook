@@ -9,6 +9,7 @@ import {
 import { AuthStateInterface } from 'src/store/auth/state';
 import createPersistedState from 'vuex-persistedstate';
 import { Cookies } from 'quasar';
+import { Signal } from 'src/hooks/useSignal';
 import auth from './auth';
 import departments from './departments';
 
@@ -40,6 +41,10 @@ export default store(({ ssrContext }) => {
     mutations: {
       setIsEditing: (state, isEditing: boolean) => {
         state.isEditing = isEditing;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      signal: (state, payload: Signal) => {
+        //
       },
     },
     modules: {

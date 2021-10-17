@@ -2,7 +2,10 @@ import { ApiContext } from 'app/src-ssr/middlewares/api';
 import { Router } from 'express';
 import { Department } from 'src/models/Department';
 import { DepartmentPerson, Person } from 'src/models/Person';
-import { FetchDepartmentPersonsPayload, FetchDepartmentsPayload } from 'src/hooks/useDepartments';
+import {
+  CreateDepartmentPayload,
+  FetchDepartmentsPayload, UpdateDepartmentPayload,
+} from 'src/hooks/useDepartments';
 
 export default ({
   dbConnection,
@@ -24,9 +27,10 @@ export default ({
     }).first();
 
     if (!department) {
-      return res.status(404).send({
+      res.status(404).send({
         message: 'Департамент не найден',
       });
+      return;
     }
     res.status(200).send(department);
   });
@@ -83,9 +87,10 @@ export default ({
       .first<DepartmentPerson>();
 
     if (!person) {
-      return res.status(404).send({
+      res.status(404).send({
         message: 'Контакт не найден',
       });
+      return;
     }
 
     res.status(200).send({
@@ -98,6 +103,93 @@ export default ({
         .where({
           personId: person.id,
         }).join('departments', 'departments.id', 'departmentsPersons.departmentId'),
+    });
+  });
+
+  router.post('/departments', async (req, res) => {
+    const { parentId, name } = req.body as CreateDepartmentPayload;
+
+    if (!name) {
+      res.status(400).send({
+        name: 'Название не должно быть пустым',
+      });
+      return;
+    }
+
+    if ((parentId !== null) && !(await dbConnection.table('departments').where({ id: parentId }).first())) {
+      res.status(400).send({
+        parentId: 'Департамент не найден',
+      });
+      return;
+    }
+
+    const order = await dbConnection.table('departments').where({ parentId }).max({
+      max: 'order',
+    }).first();
+    await dbConnection.table('departments').insert({
+      name,
+      parentId,
+      order: +(order?.max || 0) + 1,
+    });
+
+    res.status(200).send({
+      message: 'Департамент успешно создан',
+    });
+  });
+
+  router.patch('/departments/:id', async (req, res) => {
+    const { parentId, name } = req.body as UpdateDepartmentPayload['model'];
+
+    if (!name) {
+      res.status(400).send({
+        name: 'Название не должно быть пустым',
+      });
+      return;
+    }
+
+    if ((parentId !== null) && !(await dbConnection.table('departments').where({ id: parentId }).first())) {
+      res.status(400).send({
+        parentId: 'Департамент не найден',
+      });
+      return;
+    }
+
+    await dbConnection.table('departments').where({
+      id: +req.params.id,
+    }).update({
+      name,
+      parentId,
+    });
+
+    res.status(200).send({
+      message: 'Департамент успешно обновлён',
+    });
+  });
+
+  router.delete('/departments/:id', async (req, res) => {
+    const department = await dbConnection.table<Department>('departments').where({
+      id: +req.params.id,
+    }).first();
+
+    if (!department) {
+      res.status(404).send({
+        name: 'Департамент не найден',
+      });
+      return;
+    }
+
+    await dbConnection.table('departments').where({
+      parentId: department.id,
+    }).update({
+      parentId: department.parentId,
+    });
+
+    await dbConnection.table('departments').where({
+      id: department.id,
+    }).delete();
+
+    res.status(200).send({
+      message: 'Департамент успешно удалён',
     });
   });
 };
