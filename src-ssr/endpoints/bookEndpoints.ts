@@ -62,10 +62,12 @@ export default ({
 }: ApiContext) => (router: Router) => {
   router.get('/departments', async (req, res) => {
     const query = dbConnection.table<Department>('departments').orderBy('order');
-    const { parentId, tree } = req.query as FetchDepartmentsPayload;
+    const { parentId, tree } = req.query as FetchDepartmentsPayload & {
+      tree: 'false' | 'true'
+    };
 
     const departments = await query;
-    const response = tree ? (
+    const response = (tree === 'true') ? (
       parentId ? (findNode(+parentId, {
         children: listToTree(departments),
       } as Department)?.children || []) : listToTree(departments)
