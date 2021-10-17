@@ -184,6 +184,18 @@ export default ({
       parentId: department.parentId,
     });
 
+    if (department.parentId) {
+      await dbConnection.table('departmentsPersons').where({
+        departmentId: department.id,
+      }).update({
+        departmentId: department.parentId,
+      });
+    } else {
+      await dbConnection.table('departmentsPersons').where({
+        departmentId: department.id,
+      }).delete();
+    }
+
     await dbConnection.table('departments').where({
       id: department.id,
     }).delete();
