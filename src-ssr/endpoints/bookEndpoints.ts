@@ -7,17 +7,72 @@ import {
   FetchDepartmentsPayload, UpdateDepartmentPayload,
 } from 'src/hooks/useDepartments';
 
+function listToTree(list: Array<Department>) {
+  const map = {} as {
+    [key in Department['id']]: number
+  }; let node; const roots = []; let
+    i;
+
+  for (i = 0; i < list.length; i += 1) {
+    map[list[i].id] = i;
+    list[i].children = [];
+  }
+
+  for (i = 0; i < list.length; i += 1) {
+    node = list[i];
+    if (node.parentId !== null) {
+      if (!list[map[node.parentId]]) {
+        list[map[node.parentId]].children = [];
+      }
+      list[map[node.parentId]].children?.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  return roots;
+}
+
+function findNode(id: Department['id'], currentNode: Department): Department | null {
+  let i;
+  let currentChild;
+  let result;
+
+  if (id === currentNode.id) {
+    return currentNode;
+  }
+
+  if (!currentNode.children) {
+    return null;
+  }
+  for (i = 0; i < currentNode.children.length; i += 1) {
+    currentChild = currentNode.children[i];
+
+    result = findNode(id, currentChild);
+
+    if (result !== null) {
+      return result;
+    }
+  }
+
+  return null;
+}
+
 export default ({
   dbConnection,
 }: ApiContext) => (router: Router) => {
   router.get('/departments', async (req, res) => {
     const query = dbConnection.table<Department>('departments').orderBy('order');
-    const { parentId } = (req.query || {}) as FetchDepartmentsPayload;
-    if (parentId) {
-      query.where('parentId', '=', parentId);
-    }
+    const { parentId, tree } = req.query as FetchDepartmentsPayload;
+
+    const departments = await query;
+    const response = tree ? (
+      parentId ? (findNode(+parentId, {
+        children: listToTree(departments),
+      } as Department)?.children || []) : listToTree(departments)
+    ) : departments;
+
     res.status(200).send({
-      departments: await query,
+      departments: response,
     });
   });
 

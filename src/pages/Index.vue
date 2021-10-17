@@ -59,7 +59,7 @@
         </q-tree>
       </q-scroll-area>
       <q-btn
-        v-if="isEditing"
+        v-if="isEditing && department"
         fab
         color="green"
         icon="add"
@@ -70,7 +70,7 @@
         fab-mini
         color="orange"
         icon="sort"
-        v-if="isEditing && departments.length > 1"
+        v-if="isEditing && department && departments.length > 1"
         class="absolute"
         :style="{left: '10px', bottom: '10px'}"
         @click="showDepartmentsSortDialog(department?.id || null)"/>

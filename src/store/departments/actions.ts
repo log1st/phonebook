@@ -17,35 +17,9 @@ import {
   UpdateDepartmentSuccessResponse,
 } from 'src/hooks/useDepartments';
 import { api } from 'boot/axios';
-import { Department } from 'src/models/Department';
 import { SignalType } from 'src/hooks/useSignal';
 import { StateInterface } from '../index';
 import { DepartmentsStateInterface } from './state';
-
-function listToTree(list: Array<Department>) {
-  const map = {} as {
-    [key in Department['id']]: number
-  }; let node; const roots = []; let
-    i;
-
-  for (i = 0; i < list.length; i += 1) {
-    map[list[i].id] = i;
-    list[i].children = [];
-  }
-
-  for (i = 0; i < list.length; i += 1) {
-    node = list[i];
-    if (node.parentId !== null) {
-      if (!list[map[node.parentId]]) {
-        list[map[node.parentId]].children = [];
-      }
-      list[map[node.parentId]].children?.push(node);
-    } else {
-      roots.push(node);
-    }
-  }
-  return roots;
-}
 
 const actions: ActionTree<DepartmentsStateInterface, StateInterface> = {
   async fetchDepartments(context, payload: FetchDepartmentsPayload) {
@@ -58,14 +32,7 @@ const actions: ActionTree<DepartmentsStateInterface, StateInterface> = {
 
     return {
       status: response.status === 200,
-      response: {
-        departments: payload.tree ? listToTree(
-          response.data.departments.map((department) => ({
-            ...department,
-            parentId: (department.parentId === payload.parentId ? null : department.parentId),
-          })),
-        ) : response.data.departments,
-      },
+      response: response.data,
     };
   },
   async fetchDepartment(context, payload: FetchDepartmentPayload) {
