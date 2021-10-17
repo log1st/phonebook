@@ -48,6 +48,13 @@ export type RemoveDepartmentPayload = Pick<Department, 'id' | 'parentId'>
 export type RemoveDepartmentSuccessResponse = null
 export type RemoveDepartmentFailureResponse = SourcePureErrors<'error'>
 
+export type UpdateDepartmentsOrderPayload = {
+  id: Department['id'] | null;
+  order: Array<Department['id']>
+}
+export type UpdateDepartmentsOrderSuccessResponse = null;
+export type UpdateDepartmentsOrderFailureResponse = SourcePureErrors<'order'>;
+
 export const useDepartments = () => {
   const store = useStore();
 
@@ -72,6 +79,9 @@ export const useDepartments = () => {
   const removeDepartment = async (payload: RemoveDepartmentPayload) => (
     store.dispatch('departments/removeDepartment', payload) as Promise<ApiResponse<RemoveDepartmentSuccessResponse, RemoveDepartmentFailureResponse>>
   );
+  const updateDepartmentsOrder = async (payload: UpdateDepartmentsOrderPayload) => (
+    store.dispatch('departments/updateDepartmentsOrder', payload) as Promise<ApiResponse<UpdateDepartmentsOrderSuccessResponse, UpdateDepartmentsOrderFailureResponse>>
+  );
 
   return {
     fetchDepartments,
@@ -81,5 +91,6 @@ export const useDepartments = () => {
     updateDepartment,
     createDepartment,
     removeDepartment,
+    updateDepartmentsOrder,
   };
 };

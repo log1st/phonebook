@@ -1,9 +1,11 @@
 import { ActionTree } from 'vuex';
 import {
   CreateDepartmentFailureResponse,
-  CreateDepartmentPayload, CreateDepartmentSuccessResponse,
+  CreateDepartmentPayload,
+  CreateDepartmentSuccessResponse,
   FetchDepartmentPayload,
-  FetchDepartmentPersonPayload, FetchDepartmentPersonResponse,
+  FetchDepartmentPersonPayload,
+  FetchDepartmentPersonResponse,
   FetchDepartmentPersonsPayload,
   FetchDepartmentPersonsResponse,
   FetchDepartmentResponse,
@@ -14,6 +16,9 @@ import {
   RemoveDepartmentSuccessResponse,
   UpdateDepartmentFailureResponse,
   UpdateDepartmentPayload,
+  UpdateDepartmentsOrderFailureResponse,
+  UpdateDepartmentsOrderPayload,
+  UpdateDepartmentsOrderSuccessResponse,
   UpdateDepartmentSuccessResponse,
 } from 'src/hooks/useDepartments';
 import { api } from 'boot/axios';
@@ -108,6 +113,29 @@ const actions: ActionTree<DepartmentsStateInterface, StateInterface> = {
 
     if (response.status === 200) {
       commit('signal', { type: SignalType.departmentRemoved, payload }, { root: true });
+    }
+
+    return {
+      status: response.status === 200,
+      response: response.data,
+    };
+  },
+  async updateDepartmentsOrder({ commit }, payload: UpdateDepartmentsOrderPayload) {
+    const response = await api.patch<
+      UpdateDepartmentsOrderSuccessResponse | UpdateDepartmentsOrderFailureResponse
+    >(
+      '/departments/order',
+      {
+        order: payload.order,
+      }, {
+        params: {
+          id: payload.id || undefined,
+        },
+      },
+    );
+
+    if (response.status === 200) {
+      commit('signal', { type: SignalType.departmentUpdated, payload }, { root: true });
     }
 
     return {

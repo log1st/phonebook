@@ -70,7 +70,7 @@
         fab-mini
         color="orange"
         icon="sort"
-        v-if="isEditing && department && departments.length > 1"
+        v-if="isEditing && departments.length > 1"
         class="absolute"
         :style="{left: '10px', bottom: '10px'}"
         @click="showDepartmentsSortDialog(department?.id || null)"/>

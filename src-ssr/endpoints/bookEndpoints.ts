@@ -4,7 +4,7 @@ import { Department } from 'src/models/Department';
 import { DepartmentPerson, Person } from 'src/models/Person';
 import {
   CreateDepartmentPayload,
-  FetchDepartmentsPayload, UpdateDepartmentPayload,
+  FetchDepartmentsPayload, UpdateDepartmentPayload, UpdateDepartmentsOrderPayload,
 } from 'src/hooks/useDepartments';
 
 function listToTree(list: Array<Department>) {
@@ -191,6 +191,33 @@ export default ({
 
     res.status(200).send({
       message: 'Департамент успешно создан',
+    });
+  });
+
+  router.patch('/departments/order', async (req, res) => {
+    const { id } = req.params as {
+      id: UpdateDepartmentsOrderPayload['id']
+    };
+
+    if (+(id || 0) && !(await dbConnection.table('departments').where({ id }).first())) {
+      res.status(400).send({
+        error: 'Департамент не найден',
+      });
+      return;
+    }
+
+    const { order } = req.body as {
+      order: UpdateDepartmentsOrderPayload['order']
+    };
+
+    await Promise.all(
+      order.map((departmentId, index) => dbConnection.table('departments').where({ id: departmentId }).update({
+        order: index + 1,
+      })),
+    );
+
+    res.status(200).send({
+      message: 'Департаменты успешно отсортированы',
     });
   });
 

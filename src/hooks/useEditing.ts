@@ -4,6 +4,7 @@ import { Department } from 'src/models/Department';
 import { useQuasar } from 'quasar';
 import DepartmentDialog from 'components/DepartmentDialog.vue';
 import { useDepartments } from 'src/hooks/useDepartments';
+import DepartmentsOrderDialog from 'components/DepartmentsOrderDialog.vue';
 
 export const useEditing = () => {
   const store = useStore();
@@ -21,15 +22,18 @@ export const useEditing = () => {
 
   const showDepartmentDialog = (department: Department | Pick<Department, 'parentId'>) => {
     q.dialog({
-      title: 'Редактирование департамента',
       component: DepartmentDialog,
       componentProps: department,
     });
   };
 
   const showDepartmentsSortDialog = (departmentId: Department['id'] | null) => {
-    // eslint-disable-next-line no-console
-    console.log(departmentId);
+    q.dialog({
+      component: DepartmentsOrderDialog,
+      componentProps: {
+        id: departmentId,
+      },
+    });
   };
 
   const {

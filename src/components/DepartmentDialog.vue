@@ -124,11 +124,13 @@ export default defineComponent({
 
     const submit = async () => {
       clearErrors();
+      isLoading.value = true;
 
       const { status, response } = await (props.id ? updateDepartment({
         id: props.id,
         model: model.value,
       }) : createDepartment(model.value));
+      isLoading.value = false;
 
       if (!status) {
         setErrors(response);
