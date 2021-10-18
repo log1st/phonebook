@@ -102,9 +102,10 @@ export default ({
     }).delete();
 
     await dbConnection.table('departmentsPersons').insert(
-      (req.body as UpdateDepartmentsOrderPayload).order.map((id) => ({
+      (req.body as UpdateDepartmentsOrderPayload).order.map((id, index) => ({
         departmentId: +req.params.id,
         personId: id,
+        order: index + 1,
       })),
     );
 
