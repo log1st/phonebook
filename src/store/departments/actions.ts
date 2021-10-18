@@ -3,6 +3,9 @@ import {
   CreateDepartmentFailureResponse,
   CreateDepartmentPayload,
   CreateDepartmentSuccessResponse,
+  CreatePersonFailureResponse,
+  CreatePersonPayload,
+  CreatePersonSuccessResponse,
   FetchDepartmentPayload,
   FetchDepartmentPersonPayload,
   FetchDepartmentPersonResponse,
@@ -14,15 +17,22 @@ import {
   RemoveDepartmentFailureResponse,
   RemoveDepartmentPayload,
   RemoveDepartmentSuccessResponse,
+  RemovePersonFailureResponse,
+  RemovePersonPayload,
+  RemovePersonSuccessResponse,
   UpdateDepartmentFailureResponse,
   UpdateDepartmentPayload,
   UpdateDepartmentsOrderFailureResponse,
   UpdateDepartmentsOrderPayload,
   UpdateDepartmentsOrderSuccessResponse,
   UpdateDepartmentSuccessResponse,
+  UpdatePersonFailureResponse,
+  UpdatePersonPayload, UpdatePersonsOrderPayload,
+  UpdatePersonSuccessResponse,
 } from 'src/hooks/useDepartments';
 import { api } from 'boot/axios';
 import { SignalType } from 'src/hooks/useSignal';
+import { serialize } from 'object-to-formdata';
 import { StateInterface } from '../index';
 import { DepartmentsStateInterface } from './state';
 
@@ -112,7 +122,7 @@ const actions: ActionTree<DepartmentsStateInterface, StateInterface> = {
     );
 
     if (response.status === 200) {
-      commit('signal', { type: SignalType.departmentRemoved, payload }, { root: true });
+      commit('signal', { type: SignalType.departmentRemoved }, { root: true });
     }
 
     return {
@@ -136,6 +146,79 @@ const actions: ActionTree<DepartmentsStateInterface, StateInterface> = {
 
     if (response.status === 200) {
       commit('signal', { type: SignalType.departmentUpdated, payload }, { root: true });
+    }
+
+    return {
+      status: response.status === 200,
+      response: response.data,
+    };
+  },
+  async updatePerson({ commit }, payload: UpdatePersonPayload) {
+    const response = await api.patch<
+      UpdatePersonSuccessResponse | UpdatePersonFailureResponse
+    >(
+      `/persons/${payload.id}`,
+      serialize(payload.model, {
+        indices: true,
+      }),
+    );
+
+    if (response.status === 200) {
+      commit('signal', { type: SignalType.personUpdated, payload }, { root: true });
+    }
+
+    return {
+      status: response.status === 200,
+      response: response.data,
+    };
+  },
+  async createPerson({ commit }, payload: CreatePersonPayload) {
+    const response = await api.post<
+      CreatePersonSuccessResponse | CreatePersonFailureResponse
+    >(
+      '/persons/',
+      serialize(payload, {
+        indices: true,
+      }),
+    );
+
+    if (response.status === 200) {
+      commit('signal', { type: SignalType.personCreated, payload }, { root: true });
+    }
+
+    return {
+      status: response.status === 200,
+      response: response.data,
+    };
+  },
+  async removePerson({ commit }, payload: RemovePersonPayload) {
+    const response = await api.delete<
+      RemovePersonSuccessResponse | RemovePersonFailureResponse
+    >(
+      `/departments/${payload.departmentId}/persons/${payload.id}`,
+    );
+
+    if (response.status === 200) {
+      commit('signal', { type: SignalType.personRemoved }, { root: true });
+    }
+
+    return {
+      status: response.status === 200,
+      response: response.data,
+    };
+  },
+  async updatePersonsOrder({ commit }, payload: UpdatePersonsOrderPayload) {
+    const response = await api.patch<
+      RemovePersonSuccessResponse | RemovePersonFailureResponse
+    >(
+      `/departments/${payload.id}/order`,
+      {
+        order: payload.order,
+      },
+    );
+
+    if (response.status === 200) {
+      commit('signal', { type: SignalType.personsOrderUpdated }, { root: true });
     }
 
     return {

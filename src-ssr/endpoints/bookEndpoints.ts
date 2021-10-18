@@ -3,9 +3,11 @@ import { Router } from 'express';
 import { Department } from 'src/models/Department';
 import { DepartmentPerson, Person } from 'src/models/Person';
 import {
-  CreateDepartmentPayload,
+  CreateDepartmentPayload, CreatePersonPayload,
   FetchDepartmentsPayload, UpdateDepartmentPayload, UpdateDepartmentsOrderPayload,
 } from 'src/hooks/useDepartments';
+import mutler from 'multer';
+import path from 'path';
 
 function listToTree(list: Array<Department>) {
   const map = {} as {
@@ -60,6 +62,8 @@ function findNode(id: Department['id'], currentNode: Department): Department | n
 export default ({
   dbConnection,
 }: ApiContext) => (router: Router) => {
+  const upload = mutler({ dest: path.resolve(__dirname, '../../public/uploads/'), preservePath: true });
+
   router.get('/departments', async (req, res) => {
     const query = dbConnection.table<Department>('departments').orderBy('order');
     const { parentId, tree } = req.query as FetchDepartmentsPayload & {
@@ -90,6 +94,23 @@ export default ({
       return;
     }
     res.status(200).send(department);
+  });
+
+  router.patch('/departments/:id/order', async (req, res) => {
+    await dbConnection.table('departmentsPersons').where({
+      departmentId: +req.params.id,
+    }).delete();
+
+    await dbConnection.table('departmentsPersons').insert(
+      (req.body as UpdateDepartmentsOrderPayload).order.map((id) => ({
+        departmentId: +req.params.id,
+        personId: id,
+      })),
+    );
+
+    res.status(200).send({
+      message: 'Порядок контактов успешно изменён',
+    });
   });
 
   router.get('/departments/:id/persons', async (req, res) => {
@@ -286,6 +307,189 @@ export default ({
 
     res.status(200).send({
       message: 'Департамент успешно удалён',
+    });
+  });
+
+  router.post('/persons', upload.single('person[photoUrl]'), async (req, res) => {
+    const {
+      person, positions, departments, contacts,
+    } = req.body as CreatePersonPayload;
+
+    if (!person.firstName) {
+      res.status(400).send({
+        firstName: 'Необходимо указать имя',
+      });
+      return;
+    }
+
+    if (!person.middleName) {
+      res.status(400).send({
+        middleName: 'Необходимо указать отчество',
+      });
+      return;
+    }
+
+    if (!person.lastName) {
+      res.status(400).send({
+        lastName: 'Необходимо указать фамилию',
+      });
+      return;
+    }
+
+    if (!departments.length) {
+      res.status(400).send({
+        departments: 'Необходимо указать хотя бы один департамент',
+      });
+      return;
+    }
+
+    if (req.file) {
+      person.photoUrl = req.file.path.replace(/.*(\/uploads.*)$/, '$1');
+    }
+
+    const [id] = await dbConnection.table('persons').insert(person);
+
+    const orders = (await dbConnection.table<{departmentId: Department['id']; order: number}>('departmentsPersons')
+      .groupBy('departmentId')
+      .orderBy('order', 'DESC')
+      .whereIn('departmentId', departments)
+    ).reduce((acc, cur) => ({
+      ...acc,
+      [cur.departmentId]: cur.order,
+    }), {} as {
+          [key in Department['id']]: number
+      }) as {
+        [key in Department['id']]: number
+      };
+
+    await dbConnection.table('departmentsPersons').insert(
+      departments.map((departmentId) => ({
+        departmentId,
+        personId: id,
+        position: positions[departmentId],
+        order: +(orders[departmentId] || 0) + 1,
+      })),
+    );
+
+    if (contacts?.length) {
+      await dbConnection.table('contacts').insert(
+        contacts.map((contact) => ({
+          ...contact,
+          personId: id,
+        })),
+      );
+    }
+
+    res.status(200).send({
+      message: 'Контакт успешно создан',
+    });
+  });
+
+  router.patch('/persons/:id', upload.single('person[photoUrl]'), async (req, res) => {
+    const {
+      person, positions, departments, contacts,
+    } = req.body as CreatePersonPayload;
+
+    if (!(await dbConnection.table('persons').where({ id: +req.params.id }))) {
+      res.status(404).send({
+        error: 'Контакт не найден',
+      });
+      return;
+    }
+
+    if (!person.firstName) {
+      res.status(400).send({
+        firstName: 'Необходимо указать имя',
+      });
+      return;
+    }
+
+    if (!person.middleName) {
+      res.status(400).send({
+        middleName: 'Необходимо указать отчество',
+      });
+      return;
+    }
+
+    if (!person.lastName) {
+      res.status(400).send({
+        lastName: 'Необходимо указать фамилию',
+      });
+      return;
+    }
+
+    if (!departments.length) {
+      res.status(400).send({
+        departments: 'Необходимо указать хотя бы один департамент',
+      });
+      return;
+    }
+
+    if (req.file) {
+      person.photoUrl = req.file.path.replace(/.*(\/uploads.*)$/, '$1');
+    }
+
+    await dbConnection.table('persons').where({
+      id: +req.params.id,
+    }).update(person);
+
+    await dbConnection.table('departmentsPersons').where({
+      personId: +req.params.id,
+    }).delete();
+
+    const orders = (await dbConnection.table<{departmentId: Department['id']; order: number}>('departmentsPersons')
+      .groupBy('departmentId')
+      .orderBy('order', 'DESC')
+      .whereIn('departmentId', departments)
+    ).reduce((acc, cur) => ({
+      ...acc,
+      [cur.departmentId]: cur.order,
+    }), {} as {
+          [key in Department['id']]: number
+      }) as {
+        [key in Department['id']]: number
+      };
+
+    await dbConnection.table('departmentsPersons').insert(
+      departments.map((departmentId) => ({
+        departmentId,
+        personId: +req.params.id,
+        position: positions[departmentId],
+        order: +(orders[departmentId] || 0) + 1,
+      })),
+    );
+
+    await dbConnection.table('contacts').where({
+      personId: +req.params.id,
+    }).delete();
+
+    console.log(contacts?.map((contact) => ({
+      ...contact,
+      personId: +req.params.id,
+    })));
+
+    if (contacts?.length) {
+      await dbConnection.table('contacts').insert(
+        contacts.map((contact) => ({
+          ...contact,
+          personId: +req.params.id,
+        })),
+      );
+    }
+
+    res.status(200).send({
+      message: 'Контакт успешно сохранён',
+    });
+  });
+
+  router.delete('/departments/:id/persons/:personId', async (req, res) => {
+    await dbConnection.table('departmentsPersons').where({
+      departmentId: +req.params.id,
+      personId: +req.params.personId,
+    }).delete();
+
+    res.status(200).send({
+      message: 'Контакт успешно удалён',
     });
   });
 };

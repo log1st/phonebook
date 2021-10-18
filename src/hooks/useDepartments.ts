@@ -3,6 +3,7 @@ import { useStore } from 'src/store';
 import { DepartmentPerson, Person } from 'src/models/Person';
 import { ApiResponse } from 'src/hooks/useHttp';
 import { SourcePureErrors } from 'src/hooks/useErrors';
+import { Contact } from 'src/models/Contact';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface FetchDepartmentsPayload {
@@ -55,6 +56,42 @@ export type UpdateDepartmentsOrderPayload = {
 export type UpdateDepartmentsOrderSuccessResponse = null;
 export type UpdateDepartmentsOrderFailureResponse = SourcePureErrors<'order'>;
 
+export interface PersonModel {
+  person: Omit<Person, 'id' | 'photoUrl'> & {
+    photoUrl: Person['photoUrl'] | File | null;
+  };
+  positions: {
+    [key in Department['id']]: DepartmentPerson['position']
+  };
+  departments: Array<Department['id']>;
+  contacts: Array<Omit<Contact, 'id' | 'personId'> | {id: string}>
+}
+
+export interface UpdatePersonPayload {
+  id: Person['id'];
+  model: PersonModel;
+}
+export type UpdatePersonSuccessResponse = null;
+export type UpdatePersonFailureResponse = SourcePureErrors<keyof PersonModel['person'] | keyof Omit<PersonModel, 'person'>>;
+
+export type CreatePersonPayload = PersonModel
+export type CreatePersonSuccessResponse = null;
+export type CreatePersonFailureResponse = SourcePureErrors<keyof PersonModel['person'] | keyof Omit<PersonModel, 'person'>>;
+
+export type RemovePersonPayload = {
+  id: Person['id'];
+  departmentId: Department['id'];
+}
+export type RemovePersonSuccessResponse = null;
+export type RemovePersonFailureResponse = SourcePureErrors<'error'>
+
+export type UpdatePersonsOrderPayload = {
+  id: Department['id'];
+  order: Array<Person['id']>;
+}
+export type UpdatePersonsOrderSuccessResponse = null;
+export type UpdatePersonsOrderFailureResponse = SourcePureErrors<'error'>
+
 export const useDepartments = () => {
   const store = useStore();
 
@@ -82,6 +119,18 @@ export const useDepartments = () => {
   const updateDepartmentsOrder = async (payload: UpdateDepartmentsOrderPayload) => (
     store.dispatch('departments/updateDepartmentsOrder', payload) as Promise<ApiResponse<UpdateDepartmentsOrderSuccessResponse, UpdateDepartmentsOrderFailureResponse>>
   );
+  const updatePerson = async (payload: UpdatePersonPayload) => (
+    store.dispatch('departments/updatePerson', payload) as Promise<ApiResponse<UpdatePersonSuccessResponse, UpdatePersonFailureResponse>>
+  );
+  const createPerson = async (payload: CreatePersonPayload) => (
+    store.dispatch('departments/createPerson', payload) as Promise<ApiResponse<CreatePersonSuccessResponse, CreatePersonFailureResponse>>
+  );
+  const removePerson = async (payload: RemovePersonPayload) => (
+    store.dispatch('departments/removePerson', payload) as Promise<ApiResponse<RemovePersonSuccessResponse, RemovePersonFailureResponse>>
+  );
+  const updatePersonsOrder = async (payload: UpdatePersonsOrderPayload) => (
+    store.dispatch('departments/updatePersonsOrder', payload) as Promise<ApiResponse<UpdatePersonsOrderSuccessResponse, UpdatePersonsOrderFailureResponse>>
+  );
 
   return {
     fetchDepartments,
@@ -92,5 +141,9 @@ export const useDepartments = () => {
     createDepartment,
     removeDepartment,
     updateDepartmentsOrder,
+    updatePerson,
+    createPerson,
+    removePerson,
+    updatePersonsOrder,
   };
 };

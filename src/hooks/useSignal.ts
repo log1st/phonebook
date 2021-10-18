@@ -2,9 +2,13 @@ import { useStore } from 'src/store';
 import { arrayFrom } from 'src/utils/object';
 
 export enum SignalType {
-  departmentCreated,
-  departmentUpdated,
-  departmentRemoved,
+  departmentCreated = 'departmentCreated',
+  departmentUpdated = 'departmentUpdated',
+  departmentRemoved = 'departmentRemoved',
+  personUpdated = 'personUpdated',
+  personCreated = 'personCreated',
+  personRemoved = 'personRemoved',
+  personsOrderUpdated = 'personsOrderUpdated',
 }
 
 export interface Signal {

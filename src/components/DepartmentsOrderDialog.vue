@@ -58,7 +58,7 @@ import { useErrors } from 'src/hooks/useErrors';
 import Draggable from 'vuedraggable';
 
 export default defineComponent({
-  name: 'DepartmentDialog',
+  name: 'DepartmentsOrderDialog',
   components: {
     Draggable,
   },

@@ -1,9 +1,11 @@
 import bodyParser from 'body-parser';
+
 import knex, { Knex } from 'knex';
 import CryptoJS from 'crypto-js';
 import { SsrMiddlewareParams } from '@quasar/app';
 import { Token, User } from 'src/models/User';
 import { Router } from 'express';
+import * as path from 'path';
 import authEndpoints from '../endpoints/authEndpoints';
 import bookEndpoints from '../endpoints/bookEndpoints';
 
@@ -13,6 +15,7 @@ export interface ApiContext {
 }
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user: User;
@@ -22,6 +25,7 @@ declare global {
 }
 
 export default ({ app, resolve }: Pick<SsrMiddlewareParams, 'app' | 'resolve'>) => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
   const dbConnection = knex(require('../../knexfile'));
   const crypter = CryptoJS.SHA256;
 

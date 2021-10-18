@@ -115,43 +115,44 @@
               :style="{borderRadius: '10px'}"
               size="300px">
               <q-img
-                :src="person?.photoUrl"
-                :alt="person?.firstName"/>
+                :src="person?.photoUrl"/>
             </q-avatar>
-            <div class="row column q-ml-md col-grow">
-              <div class="text-h5">Контакты</div>
+            <div class="row column q-ml-md">
+              <template v-if="person?.contacts.length">
+                <div class="text-h5">Контакты</div>
+                <q-list
+                  separator
+                  bordered
+                  class="q-mt-md q-mb-md">
+                  <q-item
+                    clickable
+                    @click="goToContact(contact)"
+                    v-for="contact in person?.contacts"
+                    :key="contact.id">
+                    <q-item-section avatar>
+                      <q-icon
+                        :name="{
+                          phone: 'call',
+                          email: 'email',
+                          address: 'location_on'
+                        }[contact.type]"></q-icon>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>
+                        {{contact.value}}
+                      </q-item-label>
+                      <q-item-label
+                        caption
+                        v-if="contact.label">
+                        {{contact.label}}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </template>
+              <div class="text-h5">Департаменты</div>
               <q-list
-                separator
-                bordered
-                class="q-mt-md col-grow">
-                <q-item
-                  clickable
-                  @click="goToContact(contact)"
-                  v-for="contact in person?.contacts"
-                  :key="contact.id">
-                  <q-item-section avatar>
-                    <q-icon
-                      :name="{
-                        phone: 'call',
-                        email: 'email',
-                        address: 'location_on'
-                      }[contact.type]"></q-icon>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>
-                      {{contact.value}}
-                    </q-item-label>
-                    <q-item-label
-                      caption
-                      v-if="contact.label">
-                      {{contact.label}}
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-              <div class="text-h5 q-mt-xl">Департаменты</div>
-              <q-list
-                class="q-mt-md col-grow separator"
+                class="q-mt-md separator"
                 separator
                 bordered
               >
@@ -171,6 +172,22 @@
               </q-list>
             </div>
           </div>
+          <q-btn
+            v-if="isEditing"
+            fab
+            color="orange"
+            icon="edit"
+            class="absolute"
+            :style="{right: '10px', bottom: '10px'}"
+            @click="showPersonDialog(person?.id, department.id)"/>
+          <q-btn
+            v-if="isEditing"
+            fab
+            color="red"
+            icon="remove"
+            class="absolute"
+            :style="{right: '10px', top: '10px'}"
+            @click="showPersonRemovalDialog(person, department.id)"/>
         </div>
       </div>
       <div
@@ -188,39 +205,79 @@
         <q-scroll-area
           class="col-grow"
           key="persons-wrapper"
+          :content-style="{display: 'flex', flexDirection: 'column'}"
           v-else>
-          <q-list>
-            <q-item
-              v-for="(person, index) in persons"
-              :key="person.id"
-              :to="`/${id}/${person.id}`">
-              <q-item-section avatar>
-                <q-avatar color="primary">
-                  <img
-                    :src="person.photoUrl"
-                    :alt="person.firstName"/>
-                </q-avatar>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>
-                  {{[
-                    person.firstName,
-                    person.middleName,
-                    person.lastName
-                  ].filter(Boolean).join(' ')}}
-                </q-item-label>
-                <q-item-label
-                  caption
-                  lines="1">{{person.position}}</q-item-label>
-              </q-item-section>
-              <q-item-section
-                side
-                top>
-                <q-item-label caption>№{{ index + 1 }}</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
+          <q-banner
+            v-if="!persons.length"
+            key="no-wrapper"
+            class="text-h4 col-grow text-center text-blue-10"
+          >Нет ни одного контакта</q-banner>
+          <Draggable
+            class="q-list"
+            v-else
+            item-key="id"
+            :handle="`.${$style.drag}`"
+            @update:modelValue="setPersonsOrder"
+            v-model="persons">
+            <template #item="{element: person, index}">
+              <q-item :to="`/${id}/${person.id}`">
+                <q-item-section
+                  avatar>
+                  <div
+                    class="row items-center">
+                    <q-btn
+                      icon="sort"
+                      flat
+                      size="sm"
+                      round
+                      v-if="isEditing && persons?.length > 1"
+                      class="q-mr-md"
+                      @click.prevent
+                      :class="$style.drag"/>
+                    <q-avatar color="primary">
+                      <img
+                        :src="person.photoUrl"/>
+                    </q-avatar>
+                  </div>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    {{[
+                      person.firstName,
+                      person.middleName,
+                      person.lastName
+                    ].filter(Boolean).join(' ')}}
+                  </q-item-label>
+                  <q-item-label
+                    caption
+                    lines="1">{{person.position}}</q-item-label>
+                </q-item-section>
+                <q-item-section
+                  side>
+                  <div class="row items-center">
+                    <q-item-label caption>№{{ index + 1 }}</q-item-label>
+                    <q-btn
+                      v-if="isEditing"
+                      round
+                      size="sm"
+                      color="red"
+                      icon="remove"
+                      class="q-ml-md"
+                      @click.prevent="showPersonRemovalDialog(person, department.id)"/>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </template>
+          </Draggable>
         </q-scroll-area>
+        <q-btn
+          v-if="isEditing"
+          fab
+          color="green"
+          icon="add"
+          class="absolute"
+          :style="{right: '10px', bottom: '10px'}"
+          @click="showPersonDialog(null, department.id)"/>
       </div>
     </div>
   </q-page>
@@ -237,12 +294,16 @@ import { DepartmentPerson, Person } from 'src/models/Person';
 import { Contact, ContactType } from 'src/models/Contact';
 import { useEditing } from 'src/hooks/useEditing';
 import { SignalType, useSignal } from 'src/hooks/useSignal';
+import Draggable from 'vuedraggable';
 
 export default defineComponent({
   name: 'PageIndex',
   props: {
     id: Number as PropType<number>,
     personId: Number as PropType<number>,
+  },
+  components: {
+    Draggable,
   },
   setup(props) {
     const { id, personId } = toRefs(props);
@@ -260,6 +321,7 @@ export default defineComponent({
       fetchDepartments,
       fetchDepartmentPersons,
       fetchDepartmentPerson,
+      updatePersonsOrder,
     } = useDepartments();
 
     const loadDepartments = async () => {
@@ -330,51 +392,83 @@ export default defineComponent({
       ),
     );
 
-    watch(id, (newId) => {
-      requestAnimationFrame(async () => {
-        if (!newId) {
-          persons.value = [];
-          return;
-        }
-        isFetchingPersons.value = true;
-        const { status, response } = await fetchDepartmentPersons({
-          id: newId,
-        });
-
-        isFetchingPersons.value = false;
-
-        if (status) {
-          persons.value = response.persons;
-        }
+    const loadPersons = async () => {
+      if (!id.value) {
+        persons.value = [];
+        return;
+      }
+      isFetchingPersons.value = true;
+      const { status, response } = await fetchDepartmentPersons({
+        id: id.value,
       });
+
+      isFetchingPersons.value = false;
+
+      if (status) {
+        persons.value = response.persons;
+      }
+    };
+
+    watch(id, () => {
+      requestAnimationFrame(loadPersons);
     }, {
       immediate: !process.env.SERVER,
     });
+
+    onBeforeUnmount(
+      subscribeToSignal([
+        SignalType.personRemoved,
+        SignalType.personCreated,
+        SignalType.personUpdated,
+        SignalType.personsOrderUpdated,
+      ], loadPersons),
+    );
+
+    const loadPerson = async () => {
+      if (!personId.value || !id.value) {
+        person.value = null;
+        return;
+      }
+      isFetchingPerson.value = true;
+      const { status, response } = await fetchDepartmentPerson({
+        id: id.value,
+        personId: personId.value,
+      });
+
+      isFetchingPerson.value = false;
+
+      if (status) {
+        person.value = response;
+      }
+    };
 
     watch(computed(() => ({
       personId: personId.value,
       id: id.value,
-    })), ({ personId: newId, id: newDepartmentId }) => {
-      requestAnimationFrame(async () => {
-        if (!newId || !newDepartmentId) {
-          person.value = null;
-          return;
-        }
-        isFetchingPerson.value = true;
-        const { status, response } = await fetchDepartmentPerson({
-          id: newDepartmentId,
-          personId: newId,
-        });
-
-        isFetchingPerson.value = false;
-
-        if (status) {
-          person.value = response;
-        }
-      });
+    })), () => {
+      requestAnimationFrame(loadPerson);
     }, {
       immediate: !process.env.SERVER,
+      deep: true,
     });
+
+    onBeforeUnmount(
+      subscribeToSignal([
+        SignalType.personCreated,
+        SignalType.personUpdated,
+      ], loadPerson),
+    );
+
+    onBeforeUnmount(
+      subscribeToSignal(
+        SignalType.personRemoved,
+        async () => {
+          if (personId.value && id.value) {
+            await router.push(`/${id.value}`);
+          }
+        },
+      ),
+    );
 
     const selected = ref(null);
 
@@ -406,7 +500,19 @@ export default defineComponent({
       showDepartmentDialog,
       showDepartmentsSortDialog,
       showDepartmentRemovalDialog,
+      showPersonDialog,
+      showPersonRemovalDialog,
     } = useEditing();
+
+    const setPersonsOrder = async () => {
+      if (!id.value) {
+        return;
+      }
+      await updatePersonsOrder({
+        id: id.value,
+        order: persons.value.map(((p) => p.id)),
+      });
+    };
 
     return {
       department,
@@ -423,7 +529,16 @@ export default defineComponent({
       showDepartmentDialog,
       showDepartmentsSortDialog,
       showDepartmentRemovalDialog,
+      showPersonDialog,
+      showPersonRemovalDialog,
+      setPersonsOrder,
     };
   },
 });
 </script>
+
+<style lang="scss" module>
+.drag {
+  cursor: move;
+}
+</style>
