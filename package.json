@@ -9,7 +9,7 @@
     "dev": "quasar dev -m ssr",
     "build": "quasar build -m ssr",
     "start": "node ./dist/ssr/index.js",
-    "pm2-start": "pm2 delete phonebook && pm2 start \"yarn start\" --name phonebook"
+    "pm2-start": "pm2 delete phonebook || : && pm2 start \"yarn start\" --name phonebook"
   },
   "dependencies": {
     "@babel/register": "^7.15.3",
